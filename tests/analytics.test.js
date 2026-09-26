@@ -117,3 +117,15 @@ test('online: only this device’s seat is reported, and each hand once', () => 
   ga.trackEngineEvents([mine], { myIds: new Set(['me']), state });
   assert.deepEqual(events(env.win), [['event', 'round_complete', { result: 'win', bet_amount: 10, mode: 'online_p2p' }]]);
 });
+
+test('reuses the <head> Google tag instead of loading gtag.js twice', () => {
+  const env = fakeEnv();
+  env.win.dataLayer = [['config', ID]];
+  env.win.gtag = function () { env.win.dataLayer.push(arguments); };
+  env.win.__stgGtag = ID;
+  const ga = make(env);
+  assert.equal(ga.init(), true);
+  assert.equal(env.head.length, 0, 'no second script tag');
+  assert.equal(env.win.dataLayer.filter((a) => a[0] === 'config').length, 1, 'no second config');
+  assert.deepEqual(ga.track('room_joined'), {});
+});

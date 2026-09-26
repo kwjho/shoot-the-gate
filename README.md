@@ -114,7 +114,10 @@ root. Submit `sitemap.xml` in Search Console, or use a custom domain.
 ## Analytics (GA4)
 
 Configured in `js/config.js` → `ANALYTICS` (`enabled`, `measurementId`).
-`js/analytics.js` injects gtag.js at runtime and sends these events:
+`npm run build:seo` writes Google's standard tag (the `async gtag.js` tag plus
+config) into `<head>` between the `ga:start` / `ga:end` markers, so Google's tag
+checker and Tag Assistant can find it. `js/analytics.js` reuses that tag and
+sends these events:
 
 | Event | Parameters |
 |---|---|
@@ -132,7 +135,10 @@ The privacy rules are enforced in code:
 - Only allow-listed event names are sent. Parameters must be snake_case enums or integers, so nicknames, room codes and ids can't get through.
 - Page URLs are sent without their query string.
 - Google signals and ad personalisation are off, and consent mode denies ad storage.
-- Tracking stays off under Do Not Track or Global Privacy Control, after an opt-out on `privacy.html` (`localStorage["stg.analytics"] = "off"`), and on localhost.
+- Tracking stays off under Do Not Track or Global Privacy Control, after an opt-out on `privacy.html` (`localStorage["stg.analytics"] = "off"`), and on localhost. In those cases the head tag sets `ga-disable-<ID>` and never calls `config`, so gtag.js may download but sends nothing.
+
+Test the tag at `https://kwjho.github.io/shoot-the-gate/`, and set that as the
+GA4 web stream URL. The bare `kwjho.github.io` has no site.
 
 To test locally, add `?analytics=debug` to the URL; it turns on GA4 DebugView.
 To turn tracking off everywhere, set `ANALYTICS.enabled = false`.

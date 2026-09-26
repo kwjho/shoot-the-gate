@@ -55,3 +55,16 @@ test('robots.txt allows everyone and points to the sitemap; sitemap lists the ro
   assert.match(sitemap, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
   assert.match(sitemap, new RegExp(`<loc>${site}</loc>`));
 });
+
+test('index.html carries the standard Google tag for the configured GA4 id, behind privacy checks', async () => {
+  const { ANALYTICS } = await import('../js/config.js');
+  const head = html.slice(0, html.indexOf('</head>'));
+  assert.ok(head.includes(`<script async src="https://www.googletagmanager.com/gtag/js?id=${ANALYTICS.measurementId}"></script>`));
+  assert.ok(head.indexOf('googletagmanager') < head.indexOf('<title'), 'tag sits near the top of <head>');
+  const inline = head.match(/<!-- Google tag \(gtag\.js\) -->[\s\S]*?<script>([\s\S]*?)<\/script>/)[1];
+  for (const needle of ["globalPrivacyControl", "doNotTrack", "stg.analytics", "ga-disable-", "allow_google_signals: false", "page_location: location.origin + location.pathname"]) {
+    assert.ok(inline.includes(needle), needle);
+  }
+  // privacy checks run before any config call
+  assert.ok(inline.indexOf('return;') < inline.indexOf("gtag('config'"));
+});

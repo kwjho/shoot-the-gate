@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DICTS } from '../js/i18n.js';
+import { ANALYTICS } from '../js/config.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PKG = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
@@ -105,6 +106,56 @@ function gameJsonLd() {
   };
 }
 
+/* ── Google tag (GA4) ── */
+
+/**
+ * Google's standard gtag.js snippet, so Google's tag checker and Tag Assistant
+ * recognise it, plus privacy checks that run before any config/hit is sent.
+ * Mirrors the rules in js/analytics.js, which uses this tag once it exists.
+ */
+function googleTag() {
+  const id = String(ANALYTICS.measurementId ?? '');
+  if (!ANALYTICS.enabled || !/^G-[A-Z0-9]{4,}$/.test(id) || id === 'G-XXXXXXXXXX') return '';
+  return `  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>
+  <script>
+    (function () {
+      var id = '${id}';
+      var w = window, n = navigator, q = new URLSearchParams(location.search);
+      var optedOut = false;
+      try { optedOut = localStorage.getItem('stg.analytics') === 'off'; } catch (e) {}
+      var privacySignal = n.globalPrivacyControl === true || n.doNotTrack === '1' || w.doNotTrack === '1';
+      var local = /^(localhost|127\\.0\\.0\\.1|\\[::1\\]|)$/.test(location.hostname) && q.get('analytics') !== 'debug';
+      // Official opt-out flag: when set, gtag.js sends nothing.
+      w['ga-disable-' + id] = true;
+      if (privacySignal || optedOut || local) return;
+      w['ga-disable-' + id] = false;
+      w.dataLayer = w.dataLayer || [];
+      w.gtag = function () { w.dataLayer.push(arguments); };
+      w.__stgGtag = id;
+      gtag('consent', 'default', { analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      gtag('js', new Date());
+      var ref = '';
+      try { var r = new URL(document.referrer); ref = r.origin + r.pathname; } catch (e) {}
+      var cfg = {
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false,
+        page_location: location.origin + location.pathname, // no ?room= codes
+        page_referrer: ref
+      };
+      if (q.get('analytics') === 'debug') cfg.debug_mode = true;
+      gtag('config', id, cfg);
+    })();
+  </script>`;
+}
+
+function withGoogleTag(html) {
+  const re = /(<!-- ga:start[^>]*-->)[\s\S]*?(\s*<!-- ga:end -->)/;
+  if (!re.test(html)) throw new Error('ga:start / ga:end markers missing');
+  const tag = googleTag();
+  return html.replace(re, tag ? `$1\n${tag}$2` : '$1$2');
+}
+
 function withHeadBlock(html, block) {
   const re = /(<!-- seo:start[^>]*-->)[\s\S]*?(\s*<!-- seo:end -->)/;
   if (!re.test(html)) throw new Error('seo:start / seo:end markers missing');
@@ -142,7 +193,7 @@ const read = (f) => (existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f), 'ut
 outputs.set(
   'index.html',
   withHeadBlock(
-    prerender(read('index.html')),
+    withGoogleTag(prerender(read('index.html'))),
     headBlock({ title: t('meta.title'), description: t('meta.description'), jsonLd: gameJsonLd() }),
   ),
 );
