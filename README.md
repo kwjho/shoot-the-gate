@@ -8,7 +8,14 @@ third card lands between them. Clip a post and you pay double.
 - **Online Room**: serverless peer-to-peer play (WebRTC via PeerJS) with a
   4-letter room code.
 
-Traditional Chinese, Simplified Chinese and English. Light and dark themes.
+Traditional Chinese (Hong Kong), Simplified Chinese and English. Light and dark themes.
+
+The Traditional Chinese locale is `zh-HK`, written for the general public in
+Hong Kong: standard written Chinese with Hong Kong vocabulary (網上, 網絡,
+私隱, 派牌, 落注, 梭哈, 買大／買細, 機會率, 利是, 牌枱) and Hong Kong glyphs
+(Noto Serif HK). `tests/i18n.test.js` fails if Taiwan or Mainland terms
+(線上, 網路, 螢幕, 紀錄, 下注, 機率, 紅包, 设备 …) creep into it. Browsers set to
+any Traditional Chinese locale get `zh-HK`.
 Points only: there is no real money.
 
 ## Run it
@@ -36,7 +43,7 @@ js/
   audioFx.js        Web Audio synthesis for every sound (no audio files)
   fx.js             confetti, shake, number tweens, floaters
   ui.js             rendering and the animation queue (deal → flip → stamp)
-  i18n.js           zh-TW / zh-CN / en dictionaries, including the story and rules articles
+  i18n.js           zh-HK / zh-CN / en dictionaries, including the story and rules articles
   ads.js            AdSense lifecycle (removed entirely when ENABLE_ADS is false)
   main.js           controller: sessions, routing, forms, timers
 scripts/
@@ -95,7 +102,7 @@ totals above the current game's numbers, and **Reset stats** clears them.
 `package.json` → `homepage` is the canonical site URL. `npm run build:seo`:
 
 - writes the canonical link, OpenGraph/Twitter tags and `WebApplication`/`VideoGame` JSON-LD between the `seo:start` / `seo:end` markers in `index.html` and `privacy.html`;
-- pre-renders the zh-TW copy from `js/i18n.js` into every `data-i18n*` element, so the how-to, the story and the full rules (the home page `#guide` section) can be read without JavaScript;
+- pre-renders the zh-HK copy from `js/i18n.js` into every `data-i18n*` element, so the how-to, the story and the full rules (the home page `#guide` section) can be read without JavaScript;
 - writes `robots.txt` and `sitemap.xml`.
 
 `npm test` fails if any of these fall out of sync, so re-run the script after

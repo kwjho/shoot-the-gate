@@ -3,11 +3,11 @@
  * build-seo.mjs — keeps the static SEO surface in sync with the source of truth.
  *
  *   npm run build:seo          rewrite index.html / privacy.html head blocks,
- *                              pre-render zh-TW copy, write robots.txt + sitemap.xml
+ *                              pre-render zh-HK copy, write robots.txt + sitemap.xml
  *   npm run build:seo -- --check   exit 1 if anything is out of date (used by tests)
  *
  * Site URL comes from package.json "homepage". Copy comes from js/i18n.js, so
- * the text crawlers see without JavaScript is exactly what players see in zh-TW.
+ * the text crawlers see without JavaScript is exactly what players see in zh-HK.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -18,7 +18,7 @@ import { DICTS } from '../js/i18n.js';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PKG = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const SITE = new URL(PKG.homepage).href.replace(/\/?$/, '/');
-const LANG = 'zh-TW';
+const LANG = 'zh-HK';
 const dict = DICTS[LANG];
 const t = (key) => dict[key] ?? DICTS.en[key] ?? key;
 const check = process.argv.includes('--check');
@@ -26,7 +26,7 @@ const check = process.argv.includes('--check');
 const escText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const escAttr = (s) => escText(s).replace(/"/g, '&quot;');
 
-/* ── pre-render data-i18n* hooks with zh-TW copy ── */
+/* ── pre-render data-i18n* hooks with zh-HK copy ── */
 
 function prerender(html) {
   // Plain text elements. Their content is text only (applyDom sets textContent).
@@ -56,7 +56,7 @@ function prerender(html) {
 
 /* ── generated <head> block ── */
 
-function headBlock({ path = '', title, description, jsonLd, locale = 'zh_TW' }) {
+function headBlock({ path = '', title, description, jsonLd, locale = 'zh_HK' }) {
   const url = new URL(path, SITE).href;
   const image = new URL('assets/og-image.png', SITE).href;
   const lines = [
@@ -72,7 +72,7 @@ function headBlock({ path = '', title, description, jsonLd, locale = 'zh_TW' }) 
     `<meta property="og:image:height" content="630" />`,
     `<meta property="og:image:alt" content="射龍門: two posts and the shot card on a jade felt table" />`,
     `<meta property="og:locale" content="${locale}" />`,
-    ...['zh_TW', 'zh_CN', 'en_US'].filter((l) => l !== locale).map((l) => `<meta property="og:locale:alternate" content="${l}" />`),
+    ...['zh_HK', 'zh_CN', 'en_US'].filter((l) => l !== locale).map((l) => `<meta property="og:locale:alternate" content="${l}" />`),
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escAttr(title)}" />`,
     `<meta name="twitter:description" content="${escAttr(description)}" />`,
@@ -91,7 +91,7 @@ function gameJsonLd() {
     url: SITE,
     image: new URL('assets/og-image.png', SITE).href,
     description: t('meta.description'),
-    inLanguage: ['zh-TW', 'zh-CN', 'en'],
+    inLanguage: ['zh-HK', 'zh-CN', 'en'],
     genre: ['Card game', 'Casual game', 'Party game'],
     applicationCategory: 'GameApplication',
     applicationSubCategory: 'Card game',

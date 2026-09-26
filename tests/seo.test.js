@@ -16,7 +16,9 @@ test('generated SEO files are in sync with i18n and package.json', () => {
 test('head carries title, description, keywords, canonical, OpenGraph and Twitter tags', () => {
   assert.match(html, /<title[^>]*>射龍門[^<]+<\/title>/);
   assert.match(html, /<meta name="description"[^>]*content="[^"]{80,}"/);
-  assert.match(html, /<meta name="keywords" content="[^"]*射龍門[^"]*Shoot the Dragon Gate[^"]*撞柱[^"]*Card Game"/);
+  assert.match(html, /<meta name="keywords" content="[^"]*射龍門[^"]*Shoot the Dragon Gate[^"]*撲克牌遊戲[^"]*網上對戰[^"]*撞柱[^"]*Card Game"/);
+  assert.match(html, /<html lang="zh-HK">/);
+  assert.match(html, /property="og:locale" content="zh_HK"/);
   assert.match(html, new RegExp(`<link rel="canonical" href="${site}" />`));
   for (const p of ['og:title', 'og:description', 'og:image', 'og:url']) assert.match(html, new RegExp(`property="${p}" content="[^"]+"`));
   assert.match(html, /property="og:type" content="website"/);
@@ -38,9 +40,9 @@ test('JSON-LD describes a free WebApplication / VideoGame', () => {
 test('rules, story and how-to are readable without JavaScript', () => {
   const body = html.slice(html.indexOf('<body'));
   const text = body.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
-  // Story + rules (pre-rendered zh-TW) and the how-to steps.
+  // Story + rules (pre-rendered zh-HK) and the how-to steps.
   assert.match(body, /<section class="guide"[\s\S]*<article class="prose"[\s\S]*<h3>鯉躍龍門<\/h3>/);
-  for (const phrase of ['鯉躍龍門', '兩柱相連（無門）', '撞柱', '看懂機率', '自由玩（無莊家）', DICTS['zh-TW']['howto.s1d']]) {
+  for (const phrase of ['鯉躍龍門', '兩柱相連（無門）', '撞柱', '看懂機會率', '自由玩（無莊家）', '利是', DICTS['zh-HK']['howto.s1d']]) {
     assert.ok(text.includes(phrase), phrase);
   }
 });

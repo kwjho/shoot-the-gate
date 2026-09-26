@@ -8,8 +8,9 @@
 :root {
   color-scheme: light;
 
-  --font-ui: "Geist", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
-  --font-cjk-serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  /* Default locale is zh-HK: Hong Kong glyph forms first. */
+  --font-ui: "Geist", "PingFang HK", "Noto Sans HK", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+  --font-cjk-serif: "Noto Serif HK", "Songti TC", "MingLiU_HKSCS", "PMingLiU", serif;
   --font-head: "Instrument Serif", var(--font-cjk-serif);
   --font-num: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
