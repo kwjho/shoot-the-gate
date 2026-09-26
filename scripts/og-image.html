@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  Source for assets/og-image.png (1200×630 social preview).
+  Regenerate: serve the repo root, open /scripts/og-image.html at 1200×630 and
+  screenshot the viewport (e.g. with Playwright), saving to assets/og-image.png.
+-->
+<html lang="zh-TW" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600&family=Instrument+Serif:ital@0;1&family=Noto+Serif+TC:wght@900&display=swap" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    html, body { width: 1200px; height: 630px; margin: 0; overflow: hidden; }
+    body { display: grid; grid-template-columns: 520px 1fr; align-items: center; background:
+      radial-gradient(600px 400px at 90% 0%, rgba(212,170,85,.14), transparent 70%), #0e0d0b; }
+    .copy { padding: 0 0 0 72px; }
+    .copy h1 { margin: 16px 0 6px; font: 900 132px/0.95 var(--font-cjk-serif); color: #ede6d8; letter-spacing: .02em; }
+    .copy h1 span { color: #d24b33; }
+    .copy .en { margin: 0; font: italic 400 40px/1.2 "Instrument Serif", serif; color: #c9c0b0; }
+    .copy .sub { margin: 26px 0 0; font: 500 22px/1.45 var(--font-ui); color: #978e80; max-width: 20em; }
+    .felt { position: relative; height: 470px; margin-right: 48px; border-radius: 34px; padding: 8px;
+      background: linear-gradient(160deg, #2e140e, #140805); box-shadow: 0 40px 80px -30px #000; }
+    .felt .table { height: 100%; min-height: 0; border-radius: 28px; justify-content: center; }
+    .gate { --card-w: 150px; flex: 0 1 auto; }
+    .result { translate: -50% 90px; }
+    .result .stamp { opacity: 1; font-size: 50px; }
+  </style>
+</head>
+<body>
+  <div class="copy">
+    <span class="seal seal--lg">射</span>
+    <h1>射<span>龍</span>門</h1>
+    <p class="en">Shoot the Dragon Gate</p>
+    <p class="sub">兩張門柱・一記射門・撞柱賠雙倍<br />Solo · Pass &amp; Play · Online rooms</p>
+  </div>
+  <div class="felt">
+    <div class="table" data-lamp="win">
+      <div class="table__lamp"></div>
+      <div class="gate" id="gate">
+        <div class="slot" data-slot="left"></div>
+        <div class="slot slot--ball" data-slot="ball"></div>
+        <div class="slot" data-slot="right"></div>
+        <div class="result result--win is-shown"><span class="stamp"><span class="stamp__glyph">過門</span></span></div>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { rankLabel, isRed, SUIT_GLYPH } from '../js/gameLogic.js';
+    const cards = { left: { r: 3, s: 'S' }, ball: { r: 9, s: 'D' }, right: { r: 12, s: 'H' } };
+    for (const [slot, c] of Object.entries(cards)) {
+      const rank = rankLabel(c.r), suit = SUIT_GLYPH[c.s];
+      const idx = `<b>${rank}</b><i>${suit}</i>`;
+      document.querySelector(`[data-slot="${slot}"]`).innerHTML =
+        `<div class="card is-up"><div class="card__inner"><div class="card__face card__back"></div>
+          <div class="card__face card__front" data-color="${isRed(c.s) ? 'red' : 'black'}">
+          <span class="card__idx">${idx}</span><span class="card__center"><b>${rank}</b><i>${suit}</i></span>
+          <span class="card__idx card__idx--br">${idx}</span></div></div></div>`;
+    }
+    document.fonts.ready.then(() => (document.body.dataset.ready = '1'));
+  </script>
+</body>
+</html>

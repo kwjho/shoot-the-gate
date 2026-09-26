@@ -18,6 +18,7 @@ import * as audio from './audioFx.js';
 import * as i18n from './i18n.js';
 import * as ui from './ui.js';
 import { initAds } from './ads.js';
+import { stats } from './statsManager.js';
 import { DEFAULTS, ANTE_OPTIONS, CHIP_OPTIONS, TIMING, PEER } from './config.js';
 
 const { t } = i18n;
@@ -47,6 +48,7 @@ const storage = {
 const prefs = {
   nickname: '',
   deckMode: DEFAULTS.deckMode,
+  potMode: DEFAULTS.potMode,
   ante: DEFAULTS.ante,
   startChips: DEFAULTS.startChips,
   localNames: [],
@@ -168,6 +170,9 @@ function dispatch(action) {
 }
 
 function route(state, events = []) {
+  // Every published batch of events (local authority, host or guest) passes
+  // through here exactly once, so this is where lifetime stats are fed.
+  stats.record(events, app.myIds);
   if (state.phase === PHASES.LOBBY) {
     if (document.body.dataset.screen !== 'lobby') ui.showScreen('lobby');
     ui.renderLobby(state, ctx());
@@ -305,6 +310,8 @@ function openSetup(mode) {
   $('#nickname').value = prefs.nickname;
   const deck = form.querySelector(`input[name="deckMode"][value="${prefs.deckMode}"]`) ?? form.querySelector('input[name="deckMode"]');
   deck.checked = true;
+  const pot = form.querySelector(`input[name="potMode"][value="${prefs.potMode}"]`) ?? form.querySelector('input[name="potMode"]');
+  pot.checked = true;
   renderSegmented($('#anteOptions'), 'ante', ANTE_OPTIONS, prefs.ante);
   renderSegmented($('#chipOptions'), 'chips', CHIP_OPTIONS, prefs.startChips);
   if (!prefs.localNames.length) prefs.localNames = ['', ''];
@@ -356,6 +363,7 @@ function submitSetup(e) {
   const data = new FormData(e.target);
   const settings = {
     deckMode: String(data.get('deckMode')),
+    potMode: String(data.get('potMode')),
     ante: Number(data.get('ante')),
     startChips: Number(data.get('chips')),
   };
@@ -502,6 +510,12 @@ const commands = {
     const ok = await ui.confirm({ title: t('confirm.endTitle'), text: t('confirm.endText'), ok: t('game.end') });
     if (ok && app.engine) authorityApply({ type: 'end' });
   },
+  async resetStats() {
+    const ok = await ui.confirm({ title: t('confirm.resetTitle'), text: t('confirm.resetText'), ok: t('stats.reset') });
+    if (!ok) return;
+    stats.reset();
+    ui.toast(t('toast.statsReset'));
+  },
   rematch() {
     if (!app.engine) return;
     ui.closeGameOver();
@@ -552,6 +566,11 @@ function boot() {
   $('#joinForm').addEventListener('submit', submitJoin);
   $('#joinCode').addEventListener('input', (e) => {
     e.target.value = normalizeRoomCode(e.target.value);
+  });
+
+  // Another tab finished a hand: pick up its totals.
+  window.addEventListener('storage', (e) => {
+    if (e.key === stats.key) stats.reload();
   });
 
   window.addEventListener('beforeunload', (e) => {

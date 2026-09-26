@@ -11,10 +11,11 @@
 
 import { t, getLang } from './i18n.js';
 import {
-  PHASES, MODES, DECK_MODES, RULES, betLimits, computeOdds, postPenalty, rankLabel, isRed, SUIT_GLYPH,
+  PHASES, MODES, DECK_MODES, RULES, POT_MODES, betLimits, computeOdds, postPenalty, rankLabel, isRed, SUIT_GLYPH,
 } from './gameLogic.js';
 import * as audio from './audioFx.js';
 import * as fx from './fx.js';
+import { stats } from './statsManager.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -86,6 +87,10 @@ export function init(opts) {
     if (e.target === els.drawer) closeDrawer(); // backdrop
   });
   els.gameOver.addEventListener('cancel', (e) => e.preventDefault());
+  // Lifetime stats change after every hand (and on reset / other tabs).
+  stats.subscribe(() => {
+    if (els.drawer.open) renderStats();
+  });
 }
 
 export function showScreen(name) {
@@ -399,7 +404,7 @@ export function refresh() {
     renderGame(current.state, current.ctx);
     if (current.state.phase === PHASES.LOBBY) renderLobby(current.state, current.ctx);
   }
-  if (els.drawer?.open) renderStats(current.state);
+  if (els.drawer?.open) renderStats();
 }
 
 export function resetTable() {
@@ -420,7 +425,8 @@ function tweenPot(value) {
 }
 
 function renderHud(state) {
-  els.potLabel.textContent = state.mode === MODES.SINGLE ? t('hud.bank') : t('hud.pot');
+  const label = state.mode === MODES.SINGLE ? t('hud.bank') : t('hud.pot');
+  els.potLabel.textContent = state.settings.potMode === POT_MODES.FREE ? `${label} · ${t('hud.noLimit')}` : label;
   tweenPot(state.pot);
   const cfg = DECK_MODES[state.settings.deckMode];
   els.shoeCount.textContent = cfg.everyHand ? '52' : `${state.deckCount}`;
@@ -473,6 +479,7 @@ function renderTurnbar(state, ctx) {
     </span>
     <span class="turnbar__tags">
       ${state.mode !== MODES.SINGLE ? `<span class="tag">${esc(t('turn.round', { n: state.round }))}</span>` : ''}
+      ${state.settings.potMode === POT_MODES.FREE ? `<span class="tag tag--jade">${esc(t('pot.short.free'))}</span>` : ''}
       <span class="tag tag--quiet">${esc(t(`deck.short.${state.settings.deckMode}`))}</span>
     </span>`;
 }
@@ -877,6 +884,7 @@ export function renderLobby(state, ctx) {
     <div><dt>${esc(t('setup.deck'))}</dt><dd>${esc(t(`deck.short.${s.deckMode}`))}</dd></div>
     <div><dt>${esc(t('setup.ante'))}</dt><dd class="num">${fmt(s.ante)}</dd></div>
     <div><dt>${esc(t('setup.chips'))}</dt><dd class="num">${fmt(s.startChips)}</dd></div>
+    <div><dt>${esc(t('setup.potMode'))}</dt><dd>${esc(t(`pot.short.${s.potMode}`))}</dd></div>
     <div><dt>${esc(t('lobby.postRule'))}</dt><dd class="num">×${RULES.postMultiplier}</dd></div>`;
 
   const enough = state.players.length >= RULES.minPlayers;
@@ -912,39 +920,33 @@ export function closeDrawer() {
 function selectTab(tab) {
   $$('.tab', els.drawer).forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   $$('[data-pane]', els.drawer).forEach((p) => (p.hidden = p.dataset.pane !== tab));
-  if (tab === 'stats') renderStats(current.state);
+  if (tab === 'stats') renderStats();
   $('.drawer__body', els.drawer).scrollTop = 0;
 }
 
-export function renderStats(state) {
-  if (!state || state.phase === PHASES.LOBBY || !state.stats.hands) {
+export function renderStats(state = current.state) {
+  const life = stats.get();
+  const inGame = !!state && state.phase !== PHASES.LOBBY && state.stats.hands > 0;
+  if (stats.isEmpty() && !inGame) {
     els.stats.innerHTML = `<div class="stats__empty"><span class="seal seal--lg" aria-hidden="true">空</span><p>${esc(t('stats.empty'))}</p></div>`;
     return;
   }
-  const s = state.stats;
-  const tiles = [
-    ['hands', fmt(s.hands)],
-    ['winRate', s.shots ? pct(s.wins / s.shots) : '—'],
-    ['postHits', fmt(s.postHits)],
-    ['biggestWin', fmt(s.biggestWin), s.biggestWinBy],
-    ['biggestPot', fmt(s.biggestPot)],
-    ['wagered', fmt(s.wagered)],
-  ];
-  const parts = [
-    // Order matters: adjacent segments were validated for colour-vision separation.
-    ['win', s.wins],
-    ['post', s.postHits],
-    ['miss', s.misses],
-    ['nogate', s.noGates],
-  ];
-  const total = parts.reduce((a, [, n]) => a + n, 0) || 1;
-  els.stats.innerHTML = `
-    <p class="stats__lede">${esc(t('stats.lede'))}</p>
-    <div class="stat-grid">${tiles
-      .map(([k, v, by]) => `<div class="stat"><span class="stat__label">${esc(t(`stats.${k}`))}</span><span class="stat__value num">${esc(v)}</span>${
-        by ? `<span class="stat__sub">${esc(t('stats.by', { name: by }))}</span>` : ''}</div>`)
-      .join('')}</div>
-    <figure class="outcomes">
+  els.stats.innerHTML = `${stats.isEmpty() ? '' : lifetimeHtml(life)}${inGame ? gameHtml(state) : ''}`;
+}
+
+const signed = (n) => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(-n)}` : '0');
+
+function tile(label, value, { sub = '', tone = '' } = {}) {
+  return `<div class="stat${tone ? ` stat--${tone}` : ''}"><span class="stat__label">${esc(label)}</span><span class="stat__value num">${esc(value)}</span>${
+    sub ? `<span class="stat__sub">${esc(sub)}</span>` : ''}</div>`;
+}
+
+/** Part-to-whole bar. Order matters: adjacent segments were validated for colour-vision separation. */
+function outcomesHtml({ wins, postHits, losses, noGates }) {
+  const parts = [['win', wins], ['post', postHits], ['miss', losses], ['nogate', noGates]];
+  const total = parts.reduce((a, [, n]) => a + n, 0);
+  if (!total) return '';
+  return `<figure class="outcomes">
       <figcaption class="outcomes__title">${esc(t('stats.outcomes'))}</figcaption>
       <div class="outcomes__bar" role="img" aria-label="${esc(parts.map(([k, n]) => `${t(`stats.o.${k}`)} ${n}`).join(', '))}">
         ${parts.filter(([, n]) => n).map(([k, n]) => `<span class="outcomes__seg outcomes__seg--${k}" style="flex-grow:${n}" title="${esc(`${t(`stats.o.${k}`)} · ${n} (${pct(n / total)})`)}"></span>`).join('')}
@@ -952,13 +954,61 @@ export function renderStats(state) {
       <ul class="outcomes__legend">${parts
         .map(([k, n]) => `<li><span class="swatch swatch--${k}" aria-hidden="true"></span>${esc(t(`stats.o.${k}`))}<b class="num">${n}</b><span class="num muted">${pct(n / total)}</span></li>`)
         .join('')}</ul>
-    </figure>
-    <table class="stat-table">
-      <thead><tr><th>${esc(t('stats.player'))}</th><th class="num">${esc(t('stats.chips'))}</th><th class="num">${esc(t('stats.wins'))}</th><th class="num">${esc(t('stats.posts'))}</th></tr></thead>
-      <tbody>${[...state.players].sort((a, b) => b.chips - a.chips)
-        .map((p) => `<tr><td>${avatar(p, 'avatar avatar--sm')} ${esc(p.name)}</td><td class="num">${fmt(p.chips)}</td><td class="num">${p.wins}</td><td class="num">${p.postHits}</td></tr>`)
-        .join('')}</tbody>
-    </table>`;
+    </figure>`;
+}
+
+function lifetimeHtml(life) {
+  const since = new Date(life.since).toLocaleDateString(getLang(), { year: 'numeric', month: 'short', day: 'numeric' });
+  const tone = life.net > 0 ? 'up' : life.net < 0 ? 'down' : '';
+  return `<section class="stats__section" aria-labelledby="statsLifeTitle">
+      <header class="stats__head">
+        <div>
+          <h3 class="stats__title" id="statsLifeTitle">${esc(t('stats.allTime'))}</h3>
+          <p class="stats__lede">${esc(t('stats.since', { date: since, games: fmt(life.games) }))}</p>
+        </div>
+        <button class="btn btn--ghost btn--sm" type="button" data-cmd="resetStats">${esc(t('stats.reset'))}</button>
+      </header>
+      <div class="stat-grid">
+        ${tile(t('stats.hands'), fmt(life.hands))}
+        ${tile(t('stats.winsTotal'), fmt(life.wins))}
+        ${tile(t('stats.losses'), fmt(life.losses))}
+        ${tile(t('stats.postHits'), fmt(life.postHits))}
+        ${tile(t('stats.biggestWin'), fmt(life.biggestWin))}
+        ${tile(t('stats.net'), signed(life.net), { tone, sub: t('stats.netSub', { antes: fmt(life.antes) }) })}
+      </div>
+      ${outcomesHtml(life)}
+    </section>`;
+}
+
+function gameHtml(state) {
+  const s = state.stats;
+  const free = state.settings.potMode === POT_MODES.FREE;
+  const start = state.settings.startChips;
+  return `<section class="stats__section" aria-labelledby="statsGameTitle">
+      <header class="stats__head">
+        <div>
+          <h3 class="stats__title" id="statsGameTitle">${esc(t('stats.thisGame'))}</h3>
+          <p class="stats__lede">${esc(t(`pot.short.${state.settings.potMode}`))}</p>
+        </div>
+      </header>
+      <div class="stat-grid">
+        ${tile(t('stats.hands'), fmt(s.hands))}
+        ${tile(t('stats.winRate'), s.shots ? pct(s.wins / s.shots) : '—')}
+        ${tile(t('stats.postHits'), fmt(s.postHits))}
+        ${tile(t('stats.biggestWin'), fmt(s.biggestWin), { sub: s.biggestWinBy ? t('stats.by', { name: s.biggestWinBy }) : '' })}
+        ${free ? tile(t('stats.housePaid'), fmt(s.housePaid)) : tile(t('stats.biggestPot'), fmt(s.biggestPot))}
+        ${tile(t('stats.wagered'), fmt(s.wagered))}
+      </div>
+      <table class="stat-table">
+        <thead><tr><th>${esc(t('stats.player'))}</th><th class="num">${esc(t('stats.chips'))}</th><th class="num">${esc(t('stats.netCol'))}</th><th class="num">${esc(t('stats.wins'))}</th><th class="num">${esc(t('stats.posts'))}</th></tr></thead>
+        <tbody>${[...state.players].sort((a, b) => b.chips - a.chips)
+          .map((p) => {
+            const d = p.chips - start;
+            return `<tr><td>${avatar(p, 'avatar avatar--sm')} ${esc(p.name)}</td><td class="num">${fmt(p.chips)}</td><td class="num ${d > 0 ? 'is-up' : d < 0 ? 'is-down' : ''}">${signed(d)}</td><td class="num">${p.wins}</td><td class="num">${p.postHits}</td></tr>`;
+          })
+          .join('')}</tbody>
+      </table>
+    </section>`;
 }
 
 /* ─────────────────────────── feedback primitives ─────────────────────────── */

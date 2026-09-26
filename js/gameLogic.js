@@ -31,6 +31,16 @@ export const DECK_MODES = Object.freeze({
   'four-low': Object.freeze({ id: 'four-low', decks: 4, reshuffleBelow: 15, everyHand: false }),
 });
 
+/**
+ * Pot rules chosen at setup:
+ *   standard — traditional: a bet can never exceed the pot, and an emptied pot
+ *              forces a fresh round of antes (in Solo, draining the bank wins).
+ *   free     — 無莊家 / no pot limit: bet up to your own stack; anything the pot
+ *              can't cover is paid by the house, and play never stops for an
+ *              empty pot.
+ */
+export const POT_MODES = Object.freeze({ STANDARD: 'standard', FREE: 'free' });
+
 export const RULES = Object.freeze({
   postMultiplier: 2, // 撞柱: hitting a post costs double the bet
   minBet: 1,
@@ -150,7 +160,8 @@ export function computeOdds(gate, counts) {
 export function betLimits(state) {
   const p = state.players[state.turnIndex];
   if (!p) return { min: 0, max: 0 };
-  const max = Math.max(0, Math.min(p.chips, state.pot));
+  const cap = state.settings?.potMode === POT_MODES.FREE ? p.chips : Math.min(p.chips, state.pot);
+  const max = Math.max(0, cap);
   return { min: Math.min(RULES.minBet, max), max };
 }
 
@@ -170,7 +181,8 @@ export function normalizeSettings(raw = {}) {
   const ante = clampInt(raw.ante, 1, 10_000, 10);
   const startChips = clampInt(raw.startChips, 20, 1_000_000, 500);
   const houseBank = clampInt(raw.houseBank, 20, 10_000_000, startChips * 2);
-  return { deckMode, ante, startChips, houseBank };
+  const potMode = raw.potMode === POT_MODES.FREE ? POT_MODES.FREE : POT_MODES.STANDARD;
+  return { deckMode, ante, startChips, houseBank, potMode };
 }
 
 export function sanitizeName(raw, fallback = 'Player') {
@@ -193,6 +205,7 @@ function freshStats() {
   return {
     hands: 0, shots: 0, wins: 0, misses: 0, postHits: 0, noGates: 0,
     biggestWin: 0, biggestWinBy: '', biggestPot: 0, wagered: 0, reshuffles: 0,
+    housePaid: 0, // free-play wins the pot couldn't cover
   };
 }
 
@@ -203,6 +216,7 @@ export class GameEngine {
     this.rng = rng;
     this.state = {
       seq: 0,
+      gameId: '',
       mode,
       settings: normalizeSettings(settings),
       phase: PHASES.LOBBY,
@@ -326,13 +340,14 @@ export class GameEngine {
       p.postHits = 0;
     }
     Object.assign(s, {
+      gameId: Math.floor(this.rng() * 36 ** 6).toString(36).padStart(6, '0') + (Date.now() % 1e6).toString(36),
       pot: s.mode === MODES.SINGLE ? s.settings.houseBank : 0,
       round: 0, hand: 0, turnIndex: 0, roundTurnsLeft: 0,
       endReason: null, winnerIds: [], log: [], stats: freshStats(),
     });
     this.#clearHand();
     this.#reshuffle();
-    events.push({ type: 'start' });
+    events.push({ type: 'start', gameId: s.gameId, playerIds: s.players.map((p) => p.id) });
     this.#log('log.start', { n: s.players.length }, 'info');
     this.#beginTurn(events, 0, true);
   }
@@ -348,7 +363,7 @@ export class GameEngine {
     s.gate = gate;
     s.hand += 1;
     s.stats.hands += 1;
-    events.push({ type: 'deal', posts, kind: gate.kind });
+    events.push({ type: 'deal', playerId: p.id, posts, kind: gate.kind });
 
     const vars = { name: p.name, a: cardText(posts[0]), b: cardText(posts[1]) };
     if (gate.kind === 'nogate') {
@@ -357,6 +372,7 @@ export class GameEngine {
       s.phase = PHASES.RESOLVED;
       this.#log('log.nogate', vars, 'muted');
       events.push({ type: 'nogate', playerId: p.id });
+      this.#handEnd(events, p, 'nogate', 0, 0);
       return;
     }
     this.#log(gate.kind === 'pair' ? 'log.pair' : 'log.deal', vars, 'info');
@@ -395,10 +411,15 @@ export class GameEngine {
     const ball = this.#draw();
     const outcome = judgeShot(s.gate, ball, theCall);
     let amount;
+    let housePaid = 0;
     if (outcome === 'win') {
       amount = amountBet;
       p.chips += amount;
-      s.pot -= amount;
+      // Standard bets never exceed the pot. In free play the house tops up the shortfall.
+      const fromPot = Math.min(amount, s.pot);
+      s.pot -= fromPot;
+      housePaid = amount - fromPot;
+      s.stats.housePaid += housePaid;
       p.wins += 1;
       s.stats.wins += 1;
       if (amount > s.stats.biggestWin) {
@@ -420,15 +441,17 @@ export class GameEngine {
     s.stats.wagered += amountBet;
     this.#touchPot();
 
-    const big = outcome === 'win' && (amount >= Math.max(RULES.bigWinFloor, s.settings.startChips * 0.4) || s.pot === 0);
+    const swept = outcome === 'win' && s.pot === 0 && !this.#freePlay;
+    const big = outcome === 'win' && (amount >= Math.max(RULES.bigWinFloor, s.settings.startChips * 0.4) || swept);
     s.ball = ball;
     s.draft = { bet: amountBet, call: theCall };
-    s.result = { outcome, amount, bet: amountBet, call: theCall, playerId: p.id, ball, big, swept: s.pot === 0 };
+    s.result = { outcome, amount, bet: amountBet, call: theCall, playerId: p.id, ball, big, swept, housePaid };
     s.phase = PHASES.RESOLVED;
 
     const vars = { name: p.name, bet: amountBet, amount, ball: cardText(ball) };
     this.#log(`log.${outcome}`, vars, outcome === 'win' ? 'win' : outcome === 'post' ? 'post' : 'miss');
     events.push({ type: 'shoot', ...s.result });
+    this.#handEnd(events, p, outcome, amountBet, outcome === 'win' ? amount : -amount);
   }
 
   /** Authority-only: forfeit the active turn (e.g. a disconnected player timed out). */
@@ -448,7 +471,8 @@ export class GameEngine {
     if (s.phase !== PHASES.RESOLVED) throw new RuleError('badPhase');
     this.#clearHand();
     s.roundTurnsLeft = Math.max(0, s.roundTurnsLeft - 1);
-    const newRound = s.roundTurnsLeft <= 0 || (s.mode !== MODES.SINGLE && s.pot <= 0);
+    // Free play never forces a re-ante just because the pot ran dry.
+    const newRound = s.roundTurnsLeft <= 0 || (s.mode !== MODES.SINGLE && !this.#freePlay && s.pot <= 0);
     this.#beginTurn(events, s.turnIndex + 1, newRound);
   }
 
@@ -459,6 +483,29 @@ export class GameEngine {
   }
 
   /* ── internals ── */
+
+  get #freePlay() {
+    return this.state.settings.potMode === POT_MODES.FREE;
+  }
+
+  /**
+   * One summary event per finished hand (win, miss, post or no gate), so
+   * listeners such as the persistent stats store never have to reconstruct a
+   * hand from the individual deal/shoot events. `key` is unique per hand.
+   */
+  #handEnd(events, p, outcome, bet, delta) {
+    const s = this.state;
+    events.push({
+      type: 'handEnd',
+      key: `${s.gameId}:${s.hand}`,
+      playerId: p.id,
+      outcome,
+      bet,
+      delta,
+      chips: p.chips,
+      pot: s.pot,
+    });
+  }
 
   #assertTurn(phase, playerId) {
     if (this.state.phase !== phase) throw new RuleError('badPhase');
@@ -517,7 +564,7 @@ export class GameEngine {
     this.#touchPot();
     s.roundTurnsLeft = s.players.filter((p) => this.#eligible(p)).length;
     if (s.mode !== MODES.SINGLE) this.#log('log.round', { round: s.round, total }, 'muted');
-    events.push({ type: 'ante', round: s.round, total, paid });
+    events.push({ type: 'ante', gameId: s.gameId, round: s.round, total, paid });
   }
 
   #checkGameOver() {
@@ -526,7 +573,7 @@ export class GameEngine {
       const p = s.players[0];
       if (!p) return null;
       if (p.chips <= 0) return { reason: 'bust', winners: [] };
-      if (s.pot <= 0) return { reason: 'brokeBank', winners: [p.id] };
+      if (s.pot <= 0 && !this.#freePlay) return { reason: 'brokeBank', winners: [p.id] };
       return null;
     }
     const alive = s.players.filter((p) => p.chips > 0);

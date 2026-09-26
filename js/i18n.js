@@ -17,6 +17,9 @@ const STORE_KEY = 'stg.lang';
 const en = {
   'app.title': 'Shoot the Dragon Gate',
   'brand.zh': '射龍門',
+  'meta.title': "射龍門 Shoot the Dragon Gate | Free online card game: solo, pass & play, online rooms",
+  'meta.description': "Play 射龍門 (Shoot the Dragon Gate), the Lunar New Year card game, free in your browser. Two posts are dealt; bet the third card lands between them, and pay double if you hit a post (撞柱). Solo vs. the house, 2–6 player pass-and-play, or private online rooms with a 4-letter code. Points only, no real money.",
+  'guide.title': "The story and the full rules",
   'a11y.skip': 'Skip to content',
   'nav.home': 'Home',
   'nav.language': 'Language',
@@ -228,6 +231,27 @@ const en = {
   'stats.chips': 'Chips',
   'stats.wins': 'Wins',
   'stats.posts': 'Posts',
+  'setup.potMode': 'Pot rule',
+  'pot.standard': 'Standard pot',
+  'pot.standardDesc': 'Traditional rules. Bets are capped at the pot, and an empty pot means a fresh round of antes.',
+  'pot.free': 'Free play · no banker',
+  'pot.freeDesc': "Bet up to your own chips. The house pays whatever the pot can't cover, so play never stops for an empty pot.",
+  'pot.short.standard': 'Standard pot',
+  'pot.short.free': 'Free play',
+  'hud.noLimit': 'no limit',
+  'stats.allTime': 'All-time on this device',
+  'stats.since': 'Since {date} · Games: {games}',
+  'stats.reset': 'Reset stats',
+  'stats.thisGame': 'This game',
+  'stats.winsTotal': 'Wins',
+  'stats.losses': 'Losses',
+  'stats.net': 'Net chips',
+  'stats.netSub': 'after {antes} in antes',
+  'stats.housePaid': 'Paid by the house',
+  'stats.netCol': 'Net',
+  'confirm.resetTitle': 'Reset all-time stats?',
+  'confirm.resetText': 'This clears the totals saved on this device. The game in progress is not affected.',
+  'toast.statsReset': 'Stats reset',
 
   'toast.reshuffle': 'Fresh shoe: {n} cards shuffled',
   'toast.join': '{name} joined the table',
@@ -304,6 +328,8 @@ const en = {
       <li><strong>Double penalty cap.</strong> A post hit can never take more chips than you have. If double your bet is more than your stack, you pay everything and sit out.</li>
       <li><strong>Out of chips.</strong> A player with no chips is out. The last player holding chips wins. You can end a game early at any time, and the standings are taken from the current chip counts.</li>
     </ul>
+    <h3>Free play (無莊家)</h3>
+    <p>Choose <strong>Free play</strong> at setup for a casual table with no pot limit. You can bet up to your whole stack whatever the pot holds. If a win is bigger than the pot, the house pays the difference, and an empty pot never forces a re-ante. In Solo the house can’t go broke, so the game only ends when you run out of chips or stop.</p>
     <h3>Shoe options</h3>
     <ul>
       <li><strong>1 deck, reshuffle when low:</strong> 52 cards, rebuilt when fewer than 12 remain. The rank bars under the table show what’s left, so memory pays.</li>
@@ -331,6 +357,9 @@ const en = {
 const zhTW = {
   'app.title': '射龍門',
   'brand.zh': '射龍門',
+  'meta.title': "射龍門 Shoot the Dragon Gate｜免費線上撲克牌遊戲・單人、同機多人、線上對戰",
+  'meta.description': "免費線上玩射龍門（Shoot the Dragon Gate）：發兩張門柱，押第三張牌落在中間，撞柱賠雙倍。支援單人挑戰莊家、2–6 人同機輪流、四字房號線上對戰，繁中／简中／English。純點數娛樂，不涉真實金錢。",
+  'guide.title': "典故與完整規則",
   'a11y.skip': '跳到主要內容',
   'nav.home': '首頁',
   'nav.language': '語言',
@@ -542,6 +571,27 @@ const zhTW = {
   'stats.chips': '籌碼',
   'stats.wins': '勝',
   'stats.posts': '撞柱',
+  'setup.potMode': '彩池規則',
+  'pot.standard': '標準彩池',
+  'pot.standardDesc': '傳統玩法：注碼不可超過彩池，彩池見底就重新收底注。',
+  'pot.free': '自由玩・無莊家',
+  'pot.freeDesc': '只受自己的籌碼限制。彩池不夠賠的部分由系統補足，彩池見底也不中斷。',
+  'pot.short.standard': '標準彩池',
+  'pot.short.free': '自由玩',
+  'hud.noLimit': '無上限',
+  'stats.allTime': '本裝置累計',
+  'stats.since': '自 {date} 起・共 {games} 局',
+  'stats.reset': '重設統計',
+  'stats.thisGame': '本局',
+  'stats.winsTotal': '勝',
+  'stats.losses': '負',
+  'stats.net': '籌碼淨值',
+  'stats.netSub': '已扣底注 {antes}',
+  'stats.housePaid': '系統補賠',
+  'stats.netCol': '淨值',
+  'confirm.resetTitle': '重設累計統計？',
+  'confirm.resetText': '將清除這台裝置上儲存的累計數據，進行中的牌局不受影響。',
+  'toast.statsReset': '統計已重設',
 
   'toast.reshuffle': '重新洗牌：{n} 張',
   'toast.join': '{name} 加入牌桌',
@@ -618,6 +668,8 @@ const zhTW = {
       <li><strong>雙倍罰上限：</strong>撞柱最多賠光你手上的籌碼。若雙倍注碼超過你的籌碼，就全數賠出並出局。</li>
       <li><strong>籌碼用盡：</strong>沒有籌碼的玩家出局，最後仍持有籌碼的人獲勝。也可以隨時提前結束，以當下籌碼排名。</li>
     </ul>
+    <h3>自由玩（無莊家）</h3>
+    <p>開局時選擇<strong>自由玩</strong>，就是不設彩池上限的輕鬆玩法：無論彩池有多少，都可以押到自己的全部籌碼。贏的金額超過彩池時，差額由系統補足；彩池見底也不會強制重收底注。單人模式下莊家不會破產，遊戲只會在你輸光或主動結束時結束。</p>
     <h3>牌靴選項</h3>
     <ul>
       <li><strong>1 副牌・牌少時重洗：</strong>52 張，剩不到 12 張時重洗。牌桌下方的點數長條會顯示剩餘張數，記牌有利。</li>
@@ -647,6 +699,9 @@ const zhCN = {
   ...zhTW,
   'app.title': '射龙门',
   'brand.zh': '射龙门',
+  'meta.title': "射龙门 Shoot the Dragon Gate｜免费在线扑克牌游戏・单人、同机多人、在线对战",
+  'meta.description': "免费在线玩射龙门（Shoot the Dragon Gate）：发两张门柱，押第三张牌落在中间，撞柱赔双倍。支持单人挑战庄家、2–6 人同机轮流、四字房号在线对战，繁中／简中／English。纯点数娱乐，不涉真实金钱。",
+  'guide.title': "典故与完整规则",
   'a11y.skip': '跳到主要内容',
   'nav.home': '首页',
   'nav.language': '语言',
@@ -858,6 +913,27 @@ const zhCN = {
   'stats.chips': '筹码',
   'stats.wins': '胜',
   'stats.posts': '撞柱',
+  'setup.potMode': '奖池规则',
+  'pot.standard': '标准奖池',
+  'pot.standardDesc': '传统玩法：注码不可超过奖池，奖池见底就重新收底注。',
+  'pot.free': '自由玩・无庄家',
+  'pot.freeDesc': '只受自己的筹码限制。奖池不够赔的部分由系统补足，奖池见底也不中断。',
+  'pot.short.standard': '标准奖池',
+  'pot.short.free': '自由玩',
+  'hud.noLimit': '无上限',
+  'stats.allTime': '本设备累计',
+  'stats.since': '自 {date} 起・共 {games} 局',
+  'stats.reset': '重置统计',
+  'stats.thisGame': '本局',
+  'stats.winsTotal': '胜',
+  'stats.losses': '负',
+  'stats.net': '筹码净值',
+  'stats.netSub': '已扣底注 {antes}',
+  'stats.housePaid': '系统补赔',
+  'stats.netCol': '净值',
+  'confirm.resetTitle': '重置累计统计？',
+  'confirm.resetText': '将清除这台设备上保存的累计数据，进行中的牌局不受影响。',
+  'toast.statsReset': '统计已重置',
 
   'toast.reshuffle': '重新洗牌：{n} 张',
   'toast.join': '{name} 加入牌桌',
@@ -934,6 +1010,8 @@ const zhCN = {
       <li><strong>双倍罚上限：</strong>撞柱最多赔光你手上的筹码。若双倍注码超过你的筹码，就全数赔出并出局。</li>
       <li><strong>筹码用尽：</strong>没有筹码的玩家出局，最后仍持有筹码的人获胜。也可以随时提前结束，以当下筹码排名。</li>
     </ul>
+    <h3>自由玩（无庄家）</h3>
+    <p>开局时选择<strong>自由玩</strong>，就是不设奖池上限的轻松玩法：无论奖池有多少，都可以押到自己的全部筹码。赢的金额超过奖池时，差额由系统补足；奖池见底也不会强制重收底注。单人模式下庄家不会破产，游戏只会在你输光或主动结束时结束。</p>
     <h3>牌靴选项</h3>
     <ul>
       <li><strong>1 副牌・牌少时重洗：</strong>52 张，剩不到 12 张时重洗。牌桌下方的点数长条会显示剩余张数，记牌有利。</li>
@@ -958,7 +1036,8 @@ const zhCN = {
     <p>由房主的浏览器负责洗牌、发牌与管理奖池，其他玩家通过四个字母的房号直接连到房主（点对点 WebRTC）。玩家断线时座位会保留，在同一个标签页用同一个房号重新加入即可回座；若轮到断线玩家，等待 20 秒后会自动跳过。</p>`,
 };
 
-const DICTS = { 'zh-TW': zhTW, 'zh-CN': zhCN, en };
+/** Exported for the SEO pre-render script (scripts/build-seo.mjs). */
+export const DICTS = { 'zh-TW': zhTW, 'zh-CN': zhCN, en };
 
 let lang = 'zh-TW';
 
@@ -1007,7 +1086,6 @@ export function setLang(next) {
     /* ignore */
   }
   document.documentElement.lang = next;
-  document.title = next === 'en' ? 'Shoot the Dragon Gate · 射龍門' : `${t('app.title')} · Shoot the Dragon Gate`;
   applyDom();
   document.dispatchEvent(new CustomEvent('langchange', { detail: next }));
 }
@@ -1015,6 +1093,5 @@ export function setLang(next) {
 export function init() {
   lang = detect();
   document.documentElement.lang = lang;
-  document.title = lang === 'en' ? 'Shoot the Dragon Gate · 射龍門' : `${t('app.title')} · Shoot the Dragon Gate`;
   applyDom();
 }

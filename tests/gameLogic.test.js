@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  GameEngine, PHASES, MODES, RULES, classifyPosts, judgeShot, computeOdds, rankCounts,
+  POT_MODES, GameEngine, PHASES, MODES, RULES, classifyPosts, judgeShot, computeOdds, rankCounts,
   buildDeck, betLimits, normalizeSettings, sanitizeName,
 } from '../js/gameLogic.js';
 
@@ -263,9 +263,74 @@ test('odds reflect remaining cards', () => {
 
 test('settings and names are sanitised', () => {
   assert.deepEqual(normalizeSettings({ deckMode: 'nope', ante: -5, startChips: 'x' }), {
-    deckMode: 'single-low', ante: 1, startChips: 500, houseBank: 1000,
+    deckMode: 'single-low', ante: 1, startChips: 500, houseBank: 1000, potMode: 'standard',
   });
+  assert.equal(normalizeSettings({ potMode: 'free' }).potMode, 'free');
+  assert.equal(normalizeSettings({ potMode: 'bogus' }).potMode, 'standard');
   assert.equal(sanitizeName('  a\u0000b   c  '), 'ab c');
   assert.equal(sanitizeName(''), 'Player');
   assert.equal(sanitizeName('x'.repeat(40)).length, 16);
+});
+
+/* ── free play (無莊家 / no pot limit) ── */
+
+test('free play: bets are limited by the stack, not the pot', () => {
+  const { engine, stack, s } = rigged({ settings: { ante: 10, startChips: 100, potMode: POT_MODES.FREE } });
+  stack(card(2), card(12), card(7));
+  engine.apply({ type: 'deal', playerId: 'p1' });
+  assert.deepEqual(betLimits(s), { min: 1, max: 90 });
+  assert.equal(engine.apply({ type: 'shoot', playerId: 'p1', bet: 90 }).ok, true);
+});
+
+test('free play: the house covers what the pot cannot, and play continues', () => {
+  const { engine, stack, s } = rigged({ players: 3, settings: { ante: 10, startChips: 100, potMode: POT_MODES.FREE } });
+  stack(card(1), card(13), card(7));
+  engine.apply({ type: 'deal', playerId: 'p1' });
+  const res = engine.apply({ type: 'shoot', playerId: 'p1', bet: 80 });
+  assert.equal(s.players[0].chips, 90 + 80);
+  assert.equal(s.pot, 0);
+  assert.equal(s.result.housePaid, 50);
+  assert.equal(s.stats.housePaid, 50);
+  assert.equal(s.result.swept, false);
+  assert.ok(res.events.some((e) => e.type === 'handEnd' && e.delta === 80));
+  engine.apply({ type: 'advance' });
+  assert.equal(s.round, 1, 'an empty pot does not force a re-ante in free play');
+  assert.equal(s.turnIndex, 1);
+  assert.equal(s.phase, PHASES.AWAIT_DEAL);
+});
+
+test('free play solo: draining the bank does not end the game', () => {
+  const { engine, stack, s } = rigged({ mode: MODES.SINGLE, players: 1, settings: { ante: 10, startChips: 100, potMode: POT_MODES.FREE } });
+  s.pot = 20;
+  stack(card(1), card(13), card(7));
+  engine.apply({ type: 'deal', playerId: 'p1' });
+  engine.apply({ type: 'shoot', playerId: 'p1', bet: 60 });
+  engine.apply({ type: 'advance' });
+  assert.notEqual(s.phase, PHASES.GAMEOVER);
+  assert.equal(s.pot, 10, 'next ante refills the bank');
+});
+
+test('standard mode still caps bets at the pot', () => {
+  const { engine, stack, s } = rigged({ settings: { ante: 10, startChips: 100, potMode: POT_MODES.STANDARD } });
+  stack(card(2), card(12), card(7));
+  engine.apply({ type: 'deal', playerId: 'p1' });
+  assert.equal(betLimits(s).max, 20);
+});
+
+test('every finished hand emits one handEnd with a unique key and chip delta', () => {
+  const { engine, stack, s } = rigged({ settings: { ante: 10, startChips: 100 } });
+  stack(card(5), card(6), card(4), card(9), card(9, 'H'));
+  const nogate = engine.apply({ type: 'deal', playerId: 'p1' }).events.filter((e) => e.type === 'handEnd');
+  assert.equal(nogate.length, 1);
+  assert.equal(nogate[0].outcome, 'nogate');
+  assert.equal(nogate[0].delta, 0);
+  engine.apply({ type: 'advance' });
+  engine.apply({ type: 'deal', playerId: 'p2' });
+  const post = engine.apply({ type: 'shoot', playerId: 'p2', bet: 5 }).events.filter((e) => e.type === 'handEnd');
+  assert.equal(post.length, 1);
+  assert.equal(post[0].outcome, 'post');
+  assert.equal(post[0].delta, -10);
+  assert.equal(post[0].playerId, 'p2');
+  assert.notEqual(post[0].key, nogate[0].key);
+  assert.ok(post[0].key.startsWith(s.gameId));
 });

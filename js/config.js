@@ -59,6 +59,7 @@ export const PEER = Object.freeze({
 
 export const DEFAULTS = Object.freeze({
   deckMode: 'single-low',
+  potMode: 'standard', // 'standard' | 'free' (無莊家 / no pot limit)
   ante: 10,
   startChips: 500,
 });

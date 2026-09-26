@@ -1,0 +1,5 @@
+# https://kwjho.github.io/shoot-the-gate/
+User-agent: *
+Allow: /
+
+Sitemap: https://kwjho.github.io/shoot-the-gate/sitemap.xml
