@@ -3344,3 +3344,32 @@ body[data-screen="game"] .ad-slot--header {
   text-align: center;
   font-size: 14px;
 }
+
+/* Privacy page: analytics opt-out */
+.optout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.optout label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+.optout input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cinnabar);
+}
+.optout__status {
+  font-size: 13px;
+  color: var(--muted);
+}

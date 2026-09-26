@@ -37,6 +37,27 @@ export const AD_SLOTS = Object.freeze({
  *  Also switchable at runtime with `?ads=preview`. */
 export const SHOW_AD_PLACEHOLDERS = false;
 
+/* ─────────────────────────── Google Analytics 4 ───────────────────────────
+ *
+ * ANALYTICS.enabled       master switch. false → gtag.js is never requested and
+ *                         every track() call is a no-op.
+ * ANALYTICS.measurementId your GA4 web stream id ("G-XXXXXXXXXX" = placeholder,
+ *                         which also disables tracking).
+ *
+ * Privacy (enforced in js/analytics.js, not just here):
+ *   - Only allow-listed events with enum / number parameters are sent: never
+ *     nicknames, room codes, player or client ids, or free text.
+ *   - Google signals and ad personalisation are off; ad storage is denied.
+ *   - Page URLs are sent without their query string (room codes live there).
+ *   - Honours Do Not Track, Global Privacy Control and the opt-out switch on
+ *     privacy.html (localStorage "stg.analytics" = "off").
+ *   - Off on localhost unless the URL has ?analytics=debug.
+ */
+export const ANALYTICS = Object.freeze({
+  enabled: true,
+  measurementId: 'G-KSDWKK794K', // default placeholder: 'G-XXXXXXXXXX'
+});
+
 /* ─────────────────────────── Networking (PeerJS) ─────────────────────────── */
 
 export const PEER = Object.freeze({

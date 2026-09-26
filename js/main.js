@@ -19,6 +19,7 @@ import * as i18n from './i18n.js';
 import * as ui from './ui.js';
 import { initAds } from './ads.js';
 import { stats } from './statsManager.js';
+import { analytics } from './analytics.js';
 import { DEFAULTS, ANTE_OPTIONS, CHIP_OPTIONS, TIMING, PEER } from './config.js';
 
 const { t } = i18n;
@@ -173,6 +174,7 @@ function route(state, events = []) {
   // Every published batch of events (local authority, host or guest) passes
   // through here exactly once, so this is where lifetime stats are fed.
   stats.record(events, app.myIds);
+  analytics.trackEngineEvents(events, { myIds: app.myIds, state });
   if (state.phase === PHASES.LOBBY) {
     if (document.body.dataset.screen !== 'lobby') ui.showScreen('lobby');
     ui.renderLobby(state, ctx());
@@ -236,6 +238,7 @@ async function hostRoom(settings, name) {
   room.on('error', (err) => console.warn('[host]', err));
 
   ui.setRoomChip(room.code);
+  analytics.roomCreated();
   commit([]);
 }
 
@@ -293,6 +296,7 @@ async function joinRoom(code, name) {
     ui.showScreen('home');
   });
   ui.setRoomChip(code);
+  analytics.roomJoined();
   route(room.initialState, []);
 }
 
@@ -539,6 +543,7 @@ function boot() {
   i18n.init();
   ui.init({ dispatch });
   initAds();
+  analytics.init();
   syncSoundButton();
 
   const langSelect = $('#langSelect');

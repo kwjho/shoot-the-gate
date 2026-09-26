@@ -47,9 +47,38 @@
     <article class="prose">
       <p class="prose__kicker">Privacy policy</p>
       <h3>What this site stores</h3>
-      <p>射龍門 runs entirely in your browser. There are no accounts and no server-side game database. We save a few preferences in your browser’s local storage: language, light/dark theme, sound on/off, your last nickname and table settings, and your all-time game statistics (which you can clear with “Reset stats” in the Stats tab). A random per-tab id is kept in session storage so you can rejoin an online room after a refresh. You can clear all of it at any time from your browser settings.</p>
+      <p>射龍門 runs entirely in your browser. There are no accounts and no server-side game database. We save a few preferences in your browser’s local storage: language, light/dark theme, sound on/off, your last nickname and table settings, and your all-time game statistics (which you can clear with “Reset stats” in the Stats tab), and your analytics choice. A random per-tab id is kept in session storage so you can rejoin an online room after a refresh. You can clear all of it at any time from your browser settings.</p>
       <h3>Online rooms</h3>
       <p>Online play uses WebRTC through the open-source PeerJS library. To introduce players to each other, your browser briefly contacts a PeerJS signalling (matchmaking) server. After that, game data such as nicknames, bets and cards travels directly between the players’ browsers. As with any peer-to-peer connection, the other players in your room can see your network address.</p>
+      <h3>Analytics</h3>
+      <p>We use Google Analytics 4 to learn which modes and settings people enjoy, so we can improve the game. It receives anonymous gameplay events only: a game started (mode, shoe type, pot rule and number of players), a hand finished (result and bet size), a post was hit (撞柱), and an online room was created or joined. It never receives nicknames, room codes, player ids or anything you type. Page addresses are sent without their query string, and Google signals and ad personalisation are switched off.</p>
+      <p>Like any website, Google Analytics sees your IP address when your browser contacts it. It uses the address to estimate a coarse location (city or region) and does not log or store it. It sets a first-party cookie (<code>_ga</code>) so it can tell returning visitors apart without knowing who they are. Analytics stays off if your browser sends a Do Not Track or Global Privacy Control signal.</p>
+      <p class="optout">
+        <label><input type="checkbox" id="analyticsToggle" checked /> Allow anonymous analytics in this browser</label>
+        <span class="optout__status" id="analyticsStatus" role="status"></span>
+      </p>
+      <script>
+        (() => {
+          const KEY = 'stg.analytics';
+          const box = document.getElementById('analyticsToggle');
+          const status = document.getElementById('analyticsStatus');
+          const nav = navigator;
+          const signal = nav.globalPrivacyControl === true || nav.doNotTrack === '1' || window.doNotTrack === '1';
+          const read = () => { try { return localStorage.getItem(KEY) !== 'off'; } catch { return true; } };
+          const show = () => {
+            status.textContent = signal
+              ? 'Your browser’s privacy signal already keeps analytics off.'
+              : box.checked ? 'Analytics is on.' : 'Analytics is off in this browser.';
+          };
+          box.checked = read() && !signal;
+          box.disabled = signal;
+          box.addEventListener('change', () => {
+            try { box.checked ? localStorage.removeItem(KEY) : localStorage.setItem(KEY, 'off'); } catch {}
+            show();
+          });
+          show();
+        })();
+      </script>
       <h3>Advertising</h3>
       <p>If advertising is enabled on this deployment, Google AdSense may use cookies to serve and measure ads, including personalised ads where you have agreed to them. Google’s use of advertising cookies lets it and its partners serve ads based on your visits to this and other sites. You can opt out of personalised advertising at <a href="https://adssettings.google.com">adssettings.google.com</a>. Learn more at <a href="https://policies.google.com/technologies/ads">policies.google.com/technologies/ads</a>.</p>
       <h3>No real-money gambling</h3>

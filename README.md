@@ -39,6 +39,7 @@ js/
   config.js         deploy switches: ENABLE_ADS, AdSense ids, PeerJS broker, pacing
   gameLogic.js      pure rules engine (no DOM): deck, antes, bets, payouts, turn order
   statsManager.js   all-time stats for this device (localStorage), fed by engine events
+  analytics.js      GA4, privacy-first: allow-listed events only, loaded at runtime
   peerManager.js    HostRoom / ClientRoom over PeerJS: handshake, heartbeat, rejoin
   audioFx.js        Web Audio synthesis for every sound (no audio files)
   fx.js             confetti, shake, number tweens, floaters
@@ -49,7 +50,7 @@ js/
 scripts/
   build-seo.mjs     SEO generator (see below)
   og-image.html     source for assets/og-image.png
-tests/              node:test suites (engine, stats, SEO)
+tests/              node:test suites (engine, stats, analytics, i18n, SEO)
 ```
 
 **One authority.** `GameEngine` owns the only mutable state and takes plain
@@ -109,6 +110,36 @@ totals above the current game's numbers, and **Reset stats** clears them.
 editing copy in `js/i18n.js` or changing the homepage URL. On a GitHub *project*
 page (`user.github.io/repo/`), crawlers only read `robots.txt` at the domain
 root. Submit `sitemap.xml` in Search Console, or use a custom domain.
+
+## Analytics (GA4)
+
+Configured in `js/config.js` → `ANALYTICS` (`enabled`, `measurementId`).
+`js/analytics.js` injects gtag.js at runtime and sends these events:
+
+| Event | Parameters |
+|---|---|
+| `game_start` | `mode` (`single_player` · `local_multi` · `online_p2p`), `deck_type` (`1_deck` · `4_deck`), `shuffle` (`when_low` · `every_hand`), `pot_mode`, `players` |
+| `round_complete` | `result` (`win` · `lose` · `hit_post` · `no_gate`), `bet_amount`, `mode` |
+| `hit_the_post` | `bet_amount`, `penalty`, `mode` |
+| `room_created` / `room_joined` | none |
+
+Events come from the same engine events as the stats store and count only the
+seats this device controls, so an online hand is reported once, by the player
+who shot it.
+
+The privacy rules are enforced in code:
+
+- Only allow-listed event names are sent. Parameters must be snake_case enums or integers, so nicknames, room codes and ids can't get through.
+- Page URLs are sent without their query string.
+- Google signals and ad personalisation are off, and consent mode denies ad storage.
+- Tracking stays off under Do Not Track or Global Privacy Control, after an opt-out on `privacy.html` (`localStorage["stg.analytics"] = "off"`), and on localhost.
+
+To test locally, add `?analytics=debug` to the URL; it turns on GA4 DebugView.
+To turn tracking off everywhere, set `ANALYTICS.enabled = false`.
+
+To see `bet_amount` and `penalty` as numbers in GA4 reports, register them as
+custom metrics. Register `mode`, `result`, `deck_type`, `shuffle` and
+`pot_mode` as custom dimensions (Admin → Custom definitions).
 
 ## AdSense
 
